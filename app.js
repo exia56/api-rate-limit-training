@@ -5,7 +5,7 @@ const ApiRateLimit = require('./tools/api-rate-limit');
 const apiRateLimit = new ApiRateLimit({
   onReachLimit: (req, res, next) => {
     console.log(req.ip, 'had reach rate limit', req.ratelimit);
-    res.status(429).send({ error: 'api/reach-rate-limit' });
+    res.status(429).send('Error');
   },
 });
 
@@ -15,6 +15,11 @@ app.use(apiRateLimit.middleware);
 
 app.use('/some-api', (req, res) => {
   res.status(200).send('ok');
+});
+
+app.get('/', (req, res) => {
+  const { rateLimit } = req;
+  res.status(200).json(rateLimit);
 });
 
 app.listen(80, () => {
