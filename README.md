@@ -34,8 +34,8 @@ interface BaseRateLimitStore {
 ## 截圖
 
 1. 一般情況
-![一般情況]('./normal.jpg')
+![一般情況](normal.jpg)
 2. 60次
-![60次]('./60times.jpg')
+![60次](60times.jpg)
 3. 61次或以上
-![61次或以上]('./error.jpg')
+![61次或以上](error.jpg)
