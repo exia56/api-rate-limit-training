@@ -36,44 +36,44 @@ describe('test api rate limit', () => {
     const apiRateLimit = new ApiRateLimit({ windowMs: 100, limit: 5, onReachLimit: reachLimitSpy });
 
     // simulate there's 5 api called
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
 
     await sleep(99);
 
     // simulate there's 5 api called
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
 
-    apiRateLimit.stop();
     reachLimitSpy.callCount.should.equal(0);
+    await apiRateLimit.stop();
   });
 
   it('should reach limit 2 times', async () => {
     const reachLimitSpy = sinon.spy();
     const apiRateLimit = new ApiRateLimit({ windowMs: 100, limit: 5, onReachLimit: reachLimitSpy });
 
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
     const response = new MockResponse();
     const stub = sinon.stub(response, 'setHeader');
     const stubLimit = stub.withArgs('RateLimit-Limit', 5);
     const stubRemain = stub.withArgs('RateLimit-Remaining', 0);
     const stubReset = stub.withArgs('RateLimit-Reset', 1);
     const stubRetryAfter = stub.withArgs('Retry-After');
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), response, () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), response, () => { });
 
-    apiRateLimit.stop();
+    await apiRateLimit.stop();
     stubLimit.calledOnce.should.be.equal(true);
     stubRemain.calledOnce.should.be.equal(true);
     stubReset.calledOnce.should.be.equal(true);
@@ -86,17 +86,17 @@ describe('test api rate limit', () => {
     const apiRateLimit = new ApiRateLimit({ windowMs: 100, limit: 5, onReachLimit: reachLimitSpy });
 
     // simulate there's 5 api called
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), new MockResponse(), () => { });
     const thirdResponse = new MockResponse();
     const stub = sinon.stub(thirdResponse, 'setHeader');
     const stubLimit = stub.withArgs('RateLimit-Limit', 5);
     const stubRemain = stub.withArgs('RateLimit-Remaining', 2);
     const stubReset = stub.withArgs('RateLimit-Reset', 1);
     const stubRetryAfter = stub.withArgs('Retry-After');
-    apiRateLimit.middleware(new MockRequest('127.0.0.1'), thirdResponse, () => { });
+    await apiRateLimit.middleware(new MockRequest('127.0.0.1'), thirdResponse, () => { });
 
-    apiRateLimit.stop();
+    await apiRateLimit.stop();
     stubLimit.calledOnce.should.be.equal(true);
     stubRemain.calledOnce.should.be.equal(true);
     stubReset.calledOnce.should.be.equal(true);

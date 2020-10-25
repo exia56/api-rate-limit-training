@@ -1,13 +1,23 @@
+const RateLimitStore = require('./rate-limit-store');
 /**
  * @typedef {{
- *  windowMs: number = 60000,
- *  limit: number = 60,
+ *  windowMs: number,
+ *  limit: number,
+ *  store: import('./rate-limit-store').BaseRateLimitStore,
  *  clientIdCreator: (req: import('express').Request)=>void,
  *  onReachLimit: (
  *    req: import('express').Request,
  *    res: import('express').Response,
  *    next:  import('express').NextFunction) => void
  * }} ApiRateLimitOptions
+ */
+
+/**
+ * @typedef {{
+ *  limit: number,
+ *  remain: number,
+ *  resetAfter: number,
+ * }} RateLimitInfo
  */
 
 module.exports = class ApiRateLimit {
@@ -19,6 +29,7 @@ module.exports = class ApiRateLimit {
       onReachLimit: (res, req/** , next */) => {
         req.status(429).send('Too Many Requests');
       },
+      store: new RateLimitStore(),
     }));
   }
 
@@ -28,22 +39,21 @@ module.exports = class ApiRateLimit {
    */
   constructor(options) {
     this.options = { ...ApiRateLimit.DEFAULT_OPTIONS, ...options };
-    /** @type {Map<string, number>} */
-    this.clientRateMapping = new Map();
     /** @type {number} */
     this.resetDate = Date.now() + this.options.windowMs;
     /** @type {NodeJS.Timeout} */
     this.resetInterval = null;
+    this.store = options.store || ApiRateLimit.DEFAULT_OPTIONS.store;
     this.startResetRateLimitInterval();
 
     this.middleware = this.middlewareInternal.bind(this);
   }
 
-  stop() {
+  async stop() {
     if (this.resetInterval) {
       clearInterval(this.resetInterval);
     }
-    this.clientRateMapping.clear();
+    await this.store.clear();
   }
 
   /**
@@ -52,7 +62,7 @@ module.exports = class ApiRateLimit {
    * @param {import('express').Response} res
    * @param {import('express').NextFunction} next
    */
-  middlewareInternal(req, res, next) {
+  async middlewareInternal(req, res, next) {
     const { limit } = this.options;
     if (res.headersSent || req.rateLimit) {
       // skip if header sent or this request already handled
@@ -61,29 +71,29 @@ module.exports = class ApiRateLimit {
 
     const clientKey = this.options.clientIdCreator(req);
 
-    const clientRate = (this.clientRateMapping.get(clientKey) || 0) + 1;
+    const clientRate = await this.store.increase(clientKey);
     res.setHeader('RateLimit-Limit', limit);
-    res.setHeader('RateLimit-Remaining', Math.max(0, limit - clientRate));
+    const remain = Math.max(0, limit - clientRate);
+    res.setHeader('RateLimit-Remaining', remain);
     const resetSecond = Math.max(0, Math.ceil((this.resetDate - Date.now()) / 1000));
     res.setHeader('RateLimit-Reset', resetSecond);
     req.rateLimit = {
       limit,
-      remain: Math.max(clientRate - limit, 0),
+      remain,
       resetAfter: resetSecond,
     };
-    if (clientRate <= limit) {
-      this.clientRateMapping.set(clientKey, clientRate);
-      next();
-    } else {
+    if (clientRate > limit) {
       res.setHeader('Retry-After', resetSecond);
       this.options.onReachLimit(req, res, next);
+      return;
     }
+    next();
   }
 
   startResetRateLimitInterval() {
     const { windowMs } = this.options;
     this.resetInterval = setInterval(() => {
-      this.clientRateMapping.clear();
+      this.store.clear();
       this.resetDate = Date.now() + windowMs;
     }, windowMs);
   }
